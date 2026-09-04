@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>O Pará tá junto! — Sua foto</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#07135d;color:#fff;min-height:100vh}main{width:min(100%,720px);margin:auto;padding:22px 16px 40px;text-align:center}.brand{font-size:28px;font-weight:800;margin:4px 0 8px}.hint{margin:0 auto 18px;opacity:.9;font-size:15px}.stage{position:relative;width:min(100%,620px);aspect-ratio:1/1;margin:0 auto 18px;overflow:hidden;background:#ddd;touch-action:none;box-shadow:0 12px 35px #0005}.stage canvas,.stage img{position:absolute;inset:0;width:100%;height:100%;display:block}.stage img{pointer-events:none}.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px auto 14px;max-width:620px}button,.file-label{border:0;border-radius:999px;padding:15px 18px;font-size:17px;font-weight:750;cursor:pointer}.primary{background:#17d5c0;color:#052044}.secondary{background:#fff;color:#09145c}button:disabled{opacity:.45;cursor:not-allowed}.zoom{width:min(100%,620px);margin:8px auto 16px;display:flex;align-items:center;gap:10px}.zoom input{flex:1}.zoom span{font-size:14px}.tip{font-size:13px;opacity:.78;margin:0}.hidden{display:none}@media(max-width:430px){.brand{font-size:24px}.controls{grid-template-columns:1fr}.stage{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">O Pará tá junto!</div>
+  <p class="hint">Coloque sua foto no círculo e salve sua arte pronta.</p>
+  <div class="stage" id="stage">
+    <canvas id="canvas" width="1080" height="1080"></canvas>
+    <img id="frame" src="moldura_transparente.png" alt="Moldura da arte">
+  </div>
+  <div class="zoom"><span>−</span><input id="zoom" type="range" min="0.6" max="2.5" step="0.01" value="1"><span>＋</span></div>
+  <div class="controls">
+    <label class="file-label primary" for="photo">📷 Escolher sua foto</label>
+    <button class="secondary" id="download" disabled>⬇️ Salvar minha arte</button>
+  </div>
+  <p class="tip">Depois de escolher a foto, arraste-a para ajustar. Use o controle para aproximar ou afastar.</p>
+  <input class="hidden" id="photo" type="file" accept="image/*">
+</main>
+<script>
+const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const photoInput=document.getElementById('photo'),download=document.getElementById('download'),zoom=document.getElementById('zoom'),stage=document.getElementById('stage');
+const W=1080,H=1080,CX=540,CY=528.5,R=346.8;
+let img=new Image(), loaded=false, scale=1, offsetX=0, offsetY=0, dragging=false, lastX=0,lastY=0;
+function draw(){
+ ctx.clearRect(0,0,W,H); ctx.fillStyle='#ddd';ctx.fillRect(0,0,W,H);
+ if(loaded){
+  ctx.save();ctx.beginPath();ctx.arc(CX,CY,R,0,Math.PI*2);ctx.clip();
+  const fit=Math.max(W/img.naturalWidth,H/img.naturalHeight)*(R*2/Math.min(W,H));
+  const s=fit*scale;
+  const dw=img.naturalWidth*s,dh=img.naturalHeight*s;
+  ctx.drawImage(img,CX-dw/2+offsetX,CY-dh/2+offsetY,dw,dh);ctx.restore();
+ }
+}
+photoInput.addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);img.onload=()=>{loaded=true;scale=1;offsetX=0;offsetY=0;zoom.value=1;draw();download.disabled=false;URL.revokeObjectURL(url)};img.src=url;});
+zoom.addEventListener('input',()=>{scale=+zoom.value;draw()});
+function point(e){const r=stage.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+stage.addEventListener('pointerdown',e=>{if(!loaded)return;dragging=true;stage.setPointerCapture(e.pointerId);const p=point(e);lastX=p.x;lastY=p.y});
+stage.addEventListener('pointermove',e=>{if(!dragging)return;const p=point(e);offsetX+=p.x-lastX;offsetY+=p.y-lastY;lastX=p.x;lastY=p.y;draw()});
+stage.addEventListener('pointerup',()=>dragging=false);stage.addEventListener('pointercancel',()=>dragging=false);
+async function saveArt(){
+ if(!loaded)return;
+ download.disabled=true;
+ const old=download.innerHTML; download.innerHTML='⏳ Preparando...';
+ try{
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const o=out.getContext('2d'); o.drawImage(canvas,0,0,W,H);
+  const frame=document.getElementById('frame');
+  if(frame.complete && frame.naturalWidth) o.drawImage(frame,0,0,W,H);
+  else await new Promise((resolve,reject)=>{const f=new Image();f.onload=()=>{o.drawImage(f,0,0,W,H);resolve()};f.onerror=reject;f.src='moldura_transparente.png'});
+  const blob=await new Promise((resolve,reject)=>out.toBlob(b=>b?resolve(b):reject(new Error('PNG')),'image/png'));
+  const file=new File([blob],'minha-arte.png',{type:'image/png'});
+  const data={files:[file],title:'Minha arte'};
+  if(navigator.share && (!navigator.canShare || navigator.canShare(data))){await navigator.share(data);return;}
+  const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='minha-arte.png'; a.style.display='none'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(err){if(err.name!=='AbortError'){console.error(err);alert('Não foi possível salvar a arte. Tente novamente.')}}
+ finally{download.disabled=false;download.innerHTML=old}
+}
+download.addEventListener('click',saveArt);
+draw();
+</script>
+</body>
+</html>
