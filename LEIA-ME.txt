@@ -1,4 +1,4 @@
-SITE GRATUITO — POT TODO O PARÁ
+SITE GRATUITO — ARTE POR TODO O PARÁ
 
 Arquivos:
 - index.html = página do gerador
