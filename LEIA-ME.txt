@@ -1,0 +1,17 @@
+SITE GRATUITO — ARTE COM FOTO
+
+Arquivos:
+- index.html = página do gerador
+- moldura_transparente.png = sua arte com a área central transparente
+- arte_original.png = cópia da arte original
+
+COMO PUBLICAR GRATUITAMENTE NO GITHUB PAGES
+1. Crie uma conta gratuita no GitHub.
+2. Crie um repositório público, por exemplo: arte-com-foto.
+3. Envie index.html e moldura_transparente.png para o repositório.
+4. No repositório, abra Settings > Pages.
+5. Em Source, escolha Deploy from a branch; branch main e pasta /root.
+6. Salve e aguarde a publicação.
+7. O GitHub mostrará o endereço público da página.
+
+IMPORTANTE: o site não envia as fotos para um servidor. A foto é processada no próprio navegador da pessoa e o arquivo final é gerado no celular/computador.
